@@ -15,7 +15,10 @@ class PasswordManager:
         self.dict_password = self.load_passwords()
         self._master_password_hash = self.load_master_password()
         
-    
+    def master_password_exist(self):
+        #Comprueba si existe una contraseña maestra.
+        return bool(self._master_password_hash)
+        
     def save_passwords(self):
         #Convierte cada entrada a un diccionario antes de guardarla
         with open(self.json_file, 'w') as file:
@@ -79,10 +82,9 @@ class PasswordManager:
             #Si no hay clave, genera una.
             return self.generate_cipher_key()
         
-    def create_master_password(self):
+    def create_master_password(self, master_password):
         #Solicita al usuario que cree una contraseña maestra nueva
         while True:
-            master_password = input("Cree una contraseña maestra: ")
             if len(master_password) < 8:
                 print("La contraseña debe tener al menos 8 caracteres")
                 continue
@@ -98,8 +100,7 @@ class PasswordManager:
         self._master_password_hash = master_password_hash
         self.save_master_password(master_password_hash)
         print("Contraseña maestra creada y guardada exitosamente")
-            
-
+        
     def verifyPassword(self, password):
         #Verifica si la contraseña ingresada coincide con el hash almacenado
         return hashlib.sha256(password.encode()).digest() == self._master_password_hash
@@ -145,8 +146,7 @@ class PasswordManager:
             print(f"Error al agregar la contraseña: {ve}")
         
         
-    def edit_password(self):
-        service_name =  input("Ingrese el nombre del servicio para editar: ")
+    def edit_password(self, service_name, new_username=None, new_password=None):
         
         if service_name not in self.dict_password:
             print(f"No se encontro ninguna entrada para el servicio solicitado: '{service_name}'.")
@@ -154,9 +154,6 @@ class PasswordManager:
         
         #Obtenemos la entrada actual
         entry = self.dict_password[service_name]
-        print(f"Username actual: {entry['username']}")
-        new_username = input("Ingrese el nuevo username/email (dejar en blanco para no cambiar): ")
-        new_password = input("Ingrese la nueva contraseña (dejar en blanco para no cambiar): ")
         
         if not new_username and not new_password:
             print("No se realizaron cambios.")
@@ -166,6 +163,7 @@ class PasswordManager:
         try:
             if new_username:
                 entry['username'] = new_username
+                
             if new_password:
                 encrypted_password = self.cipher.encrypt(new_password.encode()).decode()
                 entry['password'] = encrypted_password
@@ -176,21 +174,11 @@ class PasswordManager:
         except ValueError as ve:
             print(f"Error al editar la contraseña: {ve}")
         
-    def delete_password(self):
-        service_name = input("Ingrese el nombre del servicio para eliminarlo: ")
+    def delete_password(self, service_name):
         
-        if service_name not in self.dict_password:
-            print(f"No se encontro ninguna entrada para el servicio solicitado: '{service_name}'.")
-            return
-        #Se requiere confirmacion.
-        confirm = input(f"¿Esta seguro de que desea eliminar la entrada para '{service_name}'? (si/no)")
-        
-        if confirm.lower() == "si":
             del self.dict_password[service_name]
             self.save_passwords()
             print(f"La entrada para el servicio '{service_name}' ha sido correctamente eliminada.")
-        else:
-            print("Operacion cancelada.")
             
     def view_passwords(self):
         if not self.dict_password:
